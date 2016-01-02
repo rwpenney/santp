@@ -1,11 +1,11 @@
 package uk.rwpenney.santp
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef}
 import android.util.Log
 import org.apache.commons.net.ntp.{NTPUDPClient, TimeInfo => NTPTimeInfo}
 
 
-trait TimeRef extends Actor {
+abstract class TimeRef(fuser: ActorRef) extends Actor {
   def receive = {
     case UpdateRequest => update()
   }
@@ -14,14 +14,21 @@ trait TimeRef extends Actor {
 }
 
 
-class NTPtimeRef extends TimeRef {
+class NTPtimeRef(fuser: ActorRef) extends TimeRef(fuser) {
   def update() {
-    Log.d("santp", "TICK")
+    Log.d(Config.LogName, "NTPtimeRef.update()")
+
+    // FIXME - do NTP request
+    fuser ! OffsetModel(0)
   }
 }
 
 
-class GPStimeRef extends TimeRef {
+class GPStimeRef(fuser: ActorRef) extends TimeRef(fuser) {
   def update() {
+    Log.d(Config.LogName, "GPStimeRef.update()")
+
+    // FIXME - get time from GPS
+    fuser ! OffsetModel(0)
   }
 }
