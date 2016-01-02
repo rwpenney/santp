@@ -15,18 +15,18 @@ object Config {
 }
 
 
-case class UIupdater(ui: MainScaloid) extends Actor {
-  import scala.concurrent.ExecutionContext.Implicits.global
-
+case class UIupdater(ui: MainScaloid) extends Actor with CancellableScheduler {
   def receive = {
     case ClockTick => {
       val correctedTime = ui.onClockTick()
       val nextTick = 1000 - (correctedTime % 1000)
-      context.system.scheduler.scheduleOnce(nextTick milliseconds,
-                                            self, ClockTick)
+      scheduleOnce(context.system, nextTick milliseconds, self, ClockTick)
     }
     case model: OffsetModel => ui.updateModel(model)
+    case ShutdownRequest => context.stop(self)
   }
+
+  override def postStop(): Unit = cancelScheduled()
 }
 
 
@@ -36,6 +36,7 @@ class MainScaloid extends SActivity {
   lazy val timeText = new STextView("00:00:00") textSize 40.dip
   val timeRefs = MutableList[ActorRef]()
   var uiUpdater: ActorRef = null
+  var fuser: ActorRef = null
   var timeCorrection = OffsetModel()
   var timeFormatter = new SimpleDateFormat("HH:mm:ss")
 
@@ -66,10 +67,15 @@ class MainScaloid extends SActivity {
     initActors()
   }
 
-  onDestroy {
-    Log.d(Config.LogName, "Destroying SANTP")
+  onStop {
+    Log.d(Config.LogName, "Stopping SANTP")
 
+    stopActors()
+  }
+
+  onDestroy {
     actorSys.shutdown
+    actorSys.awaitTermination
   }
 
   def onClockTick(): Long = {
@@ -89,16 +95,19 @@ class MainScaloid extends SActivity {
 
     uiUpdater = actorSys.actorOf(AkkaProps(classOf[UIupdater], this),
                                  "UIupdater")
-    actorSys.scheduler.scheduleOnce(10 milliseconds, uiUpdater, ClockTick)
-    val fuser = actorSys.actorOf(AkkaProps(classOf[TimeRefFuser], uiUpdater),
+    fuser = actorSys.actorOf(AkkaProps(classOf[TimeRefFuser], uiUpdater),
                                  "TimeRefFuser")
 
     timeRefs += actorSys.actorOf(AkkaProps(classOf[NTPtimeRef], fuser),
                                  "NTPref")
 
-    timeRefs.foreach(tr =>
-        actorSys.scheduler.schedule(100 milliseconds, 5 seconds,
-                                    tr, UpdateRequest)
-    )
+    timeRefs.foreach(tr => tr ! UpdateRequest)
+    uiUpdater ! ClockTick
+  }
+
+  def stopActors() {
+    // Send shutdown signals to Actors which use scheduled messages:
+    timeRefs.foreach(tr => tr ! ShutdownRequest)
+    uiUpdater ! ShutdownRequest
   }
 }

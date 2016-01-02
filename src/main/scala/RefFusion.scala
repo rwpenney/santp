@@ -5,11 +5,13 @@ import android.util.Log
 
 
 case class TimeRefFuser(consumer: ActorRef) extends Actor {
+  private var mergedModel = OffsetModel()
+
   def receive = {
-    case model: OffsetModel => {
+    case newmodel: OffsetModel => {
       Log.d(Config.LogName, "TimeRefFuser received update from " + sender.toString)
       // FIXME - merge model with master
-      consumer ! model
+      consumer ! newmodel
     }
   }
 }
