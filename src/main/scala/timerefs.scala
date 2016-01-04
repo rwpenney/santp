@@ -10,7 +10,8 @@ abstract class TimeRef(fuser: ActorRef) extends Actor with CancellableScheduler 
   def receive = {
     case UpdateRequest => {
       update()
-      scheduleOnce(context.system, 5 seconds, self, UpdateRequest)
+      scheduleOnce(context.system, FiniteDuration(5, SECONDS),
+                   self, UpdateRequest)
     }
     case ShutdownRequest => context.stop(self)
   }

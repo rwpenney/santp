@@ -10,8 +10,9 @@ case class TimeRefFuser(consumer: ActorRef) extends Actor {
   def receive = {
     case newmodel: OffsetModel => {
       Log.d(Config.LogName, "TimeRefFuser received update from " + sender.toString)
-      // FIXME - merge model with master
-      consumer ! newmodel
+      // FIXME - degrade current model based on age
+      mergedModel = mergedModel * newmodel
+      consumer ! mergedModel
     }
   }
 }

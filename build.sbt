@@ -4,8 +4,10 @@ import android.Keys._
 android.Plugin.androidBuild
 
 scalaVersion := "2.11.7"
-proguardCache in Android ++= Seq("org.scaloid")
+scalacOptions ++= Seq("-deprecation", "-feature")
 
+
+proguardCache in Android ++= Seq("org.scaloid")
 
 proguardOptions in Android ++= Seq(
     "-dontobfuscate",
@@ -24,6 +26,9 @@ proguardOptions in Android ++= Seq(
     "-keep class akka.actor.LocalActorRefProvider$SystemGuardian { *; }",
     "-keep class akka.dispatch.UnboundedMailbox { *; }",
     "-keep class com.typesafe.**",
+    "-keep class scala.collection.immutable.Set",
+    "-keep class scala.Option",
+    "-keep class scala.PartialFunction",
     "-keep class scala.concurrent.duration.*",
     "-printseeds target/seeds.txt", "-printusage target/usage.txt"
 )

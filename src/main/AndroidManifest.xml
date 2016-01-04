@@ -5,7 +5,7 @@
     android:versionName="1.0">
   <uses-sdk android:targetSdkVersion="16" android:minSdkVersion="14"/>
   <application android:label="@string/app_name" >
-    <activity android:name="MainScaloid"
+    <activity android:name="SantpActivity"
               android:label="@string/app_name">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
