@@ -55,7 +55,8 @@ class SantpActivity extends SActivity {
   val timeRefs = MutableList[ActorRef]()
   var uiUpdater: ActorRef = null
   var fuser: ActorRef = null
-  var timeCorrection = OffsetModel(stddev_ms=5*60*1000)
+  var timeCorrection = OffsetModel(stddev_ms=5*60*1000, n_measurements=0,
+                                   last_update=0)
   var timeFormatter = new SimpleDateFormat("HH:mm:ss")
 
   onCreate {
@@ -130,11 +131,14 @@ class SantpActivity extends SActivity {
   def initActors() {
     uiUpdater = actorSys.actorOf(AkkaProps(classOf[UIupdater], this),
                                  "UIupdater")
-    fuser = actorSys.actorOf(AkkaProps(classOf[TimeRefFuser], uiUpdater),
+    fuser = actorSys.actorOf(AkkaProps(classOf[TimeRefFuser],
+                                       uiUpdater, timeCorrection),
                                  "TimeRefFuser")
 
     timeRefs += actorSys.actorOf(AkkaProps(classOf[NTPtimeRef], fuser),
                                  "NTPref")
+    timeRefs += actorSys.actorOf(AkkaProps(classOf[DebugTimeRef], fuser),
+                                 "RandRef")
 
     timeRefs.foreach(tr => tr ! UpdateRequest)
     uiUpdater ! ClockTick

@@ -27,7 +27,7 @@ class NTPtimeRef(fuser: ActorRef) extends TimeRef(fuser) {
     Log.d(Config.LogName, "NTPtimeRef.update()")
 
     // FIXME - do NTP request
-    fuser ! OffsetModel(0)
+    fuser ! OffsetModel(0, stddev_ms=10*1000)
   }
 }
 
@@ -39,4 +39,17 @@ class GPStimeRef(fuser: ActorRef) extends TimeRef(fuser) {
     // FIXME - get time from GPS
     fuser ! OffsetModel(0)
   }
+}
+
+
+class DebugTimeRef(fuser: ActorRef) extends TimeRef(fuser) {
+  def update() {
+    Log.d(Config.LogName, "DebugTimeRef.update()")
+
+    fuser ! OffsetModel(sigma * randgen.nextGaussian(),
+                        stddev_ms=sigma)
+  }
+
+  val sigma = 20 * 1000
+  val randgen = new scala.util.Random()
 }

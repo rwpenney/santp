@@ -21,8 +21,8 @@ case object ShutdownRequest extends AkkaMessage
  */
 case class OffsetModel(offset_ms: Double=0.0,
                        stddev_ms: Double=0.0,
-                       n_measurements: Int=0,
-                       last_update: Long=0)
+                       n_measurements: Int=1,
+                       last_update: Long=System.currentTimeMillis)
         extends AkkaMessage {
   def apply(sysTime: Long): Long = (sysTime + offset_ms.toLong)
 
