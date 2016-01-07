@@ -66,11 +66,11 @@ class SantpActivity extends android.app.Activity {
 
     setContentView(R.layout.appmain)
 
-    timeText = findViewById(R.id.txt_time).asInstanceOf[TextView]
-    offsetText = findViewById(R.id.txt_offset).asInstanceOf[TextView]
-    offerrText = findViewById(R.id.txt_offerr).asInstanceOf[TextView]
-    offcntText = findViewById(R.id.txt_offcnt).asInstanceOf[TextView]
-    offageText = findViewById(R.id.txt_offage).asInstanceOf[TextView]
+    timeText = findView[TextView](R.id.txt_time)
+    offsetText = findView[TextView](R.id.txt_offset)
+    offerrText = findView[TextView](R.id.txt_offerr)
+    offcntText = findView[TextView](R.id.txt_offcnt)
+    offageText = findView[TextView](R.id.txt_offage)
   }
 
   override def onStart() {
@@ -102,11 +102,9 @@ class SantpActivity extends android.app.Activity {
     val timeStr = timeFormatter.format(new Date(correctedTime))
     val age = (sysTime - timeCorrection.last_update) / 1000
 
-    runOnUiThread(new Runnable() {
-      def run() {
+    runOnUiThread({
         timeText.setText(timeStr)
         offageText.setText(s"${age}s")
-      }
     })
 
     correctedTime
@@ -117,12 +115,10 @@ class SantpActivity extends android.app.Activity {
 
     timeCorrection = model
 
-    runOnUiThread(new Runnable() {
-      def run() {
+    runOnUiThread({
         offsetText.setText(s"${timeCorrection.offset_ms.toInt}ms")
         offerrText.setText(s"${timeCorrection.stddev_ms.toInt}ms")
         offcntText.setText(s"${timeCorrection.n_measurements}")
-      }
     })
   }
 
@@ -143,5 +139,21 @@ class SantpActivity extends android.app.Activity {
     // Send shutdown signals to Actors which use scheduled messages:
     timeRefs.foreach(tr => tr ! ShutdownRequest)
     uiUpdater ! ShutdownRequest
+  }
+
+  def findView[VT](id: Int): VT = findViewById(id).asInstanceOf[VT]
+
+  def findViews[VT](ids: Seq[Int]): Seq[VT] = {
+    for {
+      id <- ids
+    } yield findViewById(id).asInstanceOf[VT]
+  }
+
+  def runOnUiThread(f: => Unit): Unit = {
+    runOnUiThread(
+        new Runnable() {
+          def run() { f }
+        }
+    )
   }
 }

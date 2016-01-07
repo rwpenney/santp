@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
   <dimen name="textsize_clock">40dip</dimen>
-  <dimen name="textsize_model">10dip</dimen>
+  <dimen name="textsize_model">15dip</dimen>
+  <dimen name="column_sep">12dip</dimen>
 
   <color name="color_modelparams">#222</color>
 </resources>

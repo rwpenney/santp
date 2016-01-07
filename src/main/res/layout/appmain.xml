@@ -13,15 +13,16 @@
       android:layout_width="wrap_content"
       android:layout_height="wrap_content">
     <TableRow>
-      <TextView android:text="offset:"
+      <TextView android:text="offset: "
           android:textSize="@dimen/textsize_model"/>
       <TextView android:id="@+id/txt_offset"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text=""
         android:textSize="@dimen/textsize_model"
-        android:gravity="left"/>
-      <TextView android:text="stddev:"
+        android:gravity="left"
+        android:layout_marginRight="@dimen/column_sep"/>
+      <TextView android:text="stddev: "
           android:textSize="@dimen/textsize_model"/>
       <TextView android:id="@+id/txt_offerr"
         android:layout_width="wrap_content"
@@ -31,15 +32,16 @@
         android:gravity="left"/>
     </TableRow>
     <TableRow>
-      <TextView android:text="count:"
+      <TextView android:text="count: "
           android:textSize="@dimen/textsize_model"/>
       <TextView android:id="@+id/txt_offcnt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text=""
         android:textSize="@dimen/textsize_model"
-        android:gravity="left"/>
-      <TextView android:text="age:"
+        android:gravity="left"
+        android:layout_marginRight="@dimen/column_sep"/>
+      <TextView android:text="age: "
           android:textSize="@dimen/textsize_model"/>
       <TextView android:id="@+id/txt_offage"
         android:layout_width="wrap_content"
