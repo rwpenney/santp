@@ -8,9 +8,10 @@ package uk.rwpenney.santp
 import akka.actor.{Actor, ActorRef, ActorSystem, Props => AkkaProps }
 import android.graphics.Color
 import android.util.Log
+import android.widget.TextView
 import java.text.SimpleDateFormat
 import java.util.Date
-import org.scaloid.common._
+import java.lang.Runnable
 import scala.collection.mutable.MutableList
 import scala.concurrent.duration._
 
@@ -43,14 +44,14 @@ case class UIupdater(ui: SantpActivity)
 /**
  *  Top-level Activity for SANTP app.
  */
-class SantpActivity extends SActivity {
+class SantpActivity extends android.app.Activity {
   lazy val actorSys = ActorSystem("santpSystem")
 
-  lazy val timeText = new STextView("00:00:00") textSize 40.dip
-  lazy val offsetText = new STextView("??")
-  lazy val offerrText = new STextView("??")
-  lazy val offcntText = new STextView("??")
-  lazy val offageText = new STextView("??")
+  var timeText: TextView = null
+  var offsetText: TextView = null
+  var offerrText: TextView = null
+  var offcntText: TextView = null
+  var offageText: TextView = null
 
   val timeRefs = MutableList[ActorRef]()
   var uiUpdater: ActorRef = null
@@ -59,47 +60,41 @@ class SantpActivity extends SActivity {
                                    last_update=0)
   var timeFormatter = new SimpleDateFormat("HH:mm:ss")
 
-  onCreate {
+  override def onCreate(b: android.os.Bundle) {
+    super.onCreate(b)
+
     Log.d(Config.LogName, "Creating SANTP")
 
-    contentView = new SVerticalLayout {
-      this += timeText
+    setContentView(R.layout.appmain)
 
-      new STableLayout {
-        style {
-          case t: STextView => t.textSize(15.dip)
-        }
-        this += new STableRow {
-          STextView("offset:")
-          offsetText . here
-          STextView("stddev:")
-          offerrText . here
-        } . wrap
-        this += new STableRow {
-          STextView("count:")
-          offcntText . here
-          STextView("age:")
-          offageText . here
-        } . wrap
-      } . wrap . here
-    }
+    timeText = findView[TextView](R.id.txt_time)
+    offsetText = findView[TextView](R.id.txt_offset)
+    offerrText = findView[TextView](R.id.txt_offerr)
+    offcntText = findView[TextView](R.id.txt_offcnt)
+    offageText = findView[TextView](R.id.txt_offage)
   }
 
-  onStart {
+  override def onStart() {
+    super.onStart()
+
     Log.d(Config.LogName, "Starting NTP timer reference")
 
     initActors()
   }
 
-  onStop {
+  override def onStop() {
     Log.d(Config.LogName, "Stopping SANTP")
 
     stopActors()
+
+    super.onStop()
   }
 
-  onDestroy {
+  override def onDestroy() {
     actorSys.shutdown
     actorSys.awaitTermination
+
+    super.onDestroy()
   }
 
   def onClockTick(): Long = {
@@ -109,8 +104,8 @@ class SantpActivity extends SActivity {
     val age = (sysTime - timeCorrection.last_update) / 1000
 
     runOnUiThread({
-      timeText.text(timeStr)
-      offageText.text(s"${age}s")
+        timeText.setText(timeStr)
+        offageText.setText(s"${age}s")
     })
 
     correctedTime
@@ -122,9 +117,9 @@ class SantpActivity extends SActivity {
     timeCorrection = model
 
     runOnUiThread({
-      offsetText.text(s"${timeCorrection.offset_ms.toInt}ms")
-      offerrText.text(s"${timeCorrection.stddev_ms.toInt}ms")
-      offcntText.text(s"${timeCorrection.n_measurements}")
+        offsetText.setText(s"${timeCorrection.offset_ms.toInt}ms")
+        offerrText.setText(s"${timeCorrection.stddev_ms.toInt}ms")
+        offcntText.setText(s"${timeCorrection.n_measurements}")
     })
   }
 
@@ -150,5 +145,21 @@ class SantpActivity extends SActivity {
     // Send shutdown signals to Actors which use scheduled messages:
     timeRefs.foreach(tr => tr ! ShutdownRequest)
     uiUpdater ! ShutdownRequest
+  }
+
+  def findView[VT](id: Int): VT = findViewById(id).asInstanceOf[VT]
+
+  def findViews[VT](ids: Seq[Int]): Seq[VT] = {
+    for {
+      id <- ids
+    } yield findViewById(id).asInstanceOf[VT]
+  }
+
+  def runOnUiThread(f: => Unit): Unit = {
+    runOnUiThread(
+        new Runnable() {
+          def run() { f }
+        }
+    )
   }
 }

@@ -7,12 +7,9 @@ scalaVersion := "2.11.7"
 scalacOptions ++= Seq("-deprecation", "-feature")
 
 
-proguardCache in Android ++= Seq("org.scaloid")
-
 proguardOptions in Android ++= Seq(
     "-dontobfuscate",
     "-dontoptimize",
-    "-dontwarn org.scaloid.**",
     "-dontwarn sun.misc.Unsafe",
     "-dontwarn scala.collection.**",
     "-keepattributes EnclosingMethod",
@@ -37,8 +34,7 @@ proguardOptions in Android ++= Seq(
 libraryDependencies ++= Seq(
     "com.typesafe.akka" %% "akka-actor" % "2.3.14",
     "commons-net" % "commons-net" % "3.4",
-    "net.sf.proguard" % "proguard-base" % "5.1",
-    "org.scaloid" %% "scaloid" % "4.1"
+    "net.sf.proguard" % "proguard-base" % "5.1"
 )
 
 
