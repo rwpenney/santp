@@ -140,7 +140,9 @@ class SantpActivity extends SActivity {
     timeRefs += actorSys.actorOf(AkkaProps(classOf[DebugTimeRef], fuser),
                                  "RandRef")
 
-    timeRefs.foreach(tr => tr ! UpdateRequest)
+    timeRefs.foreach {
+      tr => tr ! UpdateRequest
+    }
     uiUpdater ! ClockTick
   }
 
