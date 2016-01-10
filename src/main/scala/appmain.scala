@@ -45,13 +45,14 @@ case class UIupdater(ui: SantpActivity)
  *  Top-level Activity for SANTP app.
  */
 class SantpActivity extends android.app.Activity {
-  lazy val actorSys = ActorSystem("santpSystem")
+  val instanceId = f"${(System.currentTimeMillis & 0xffffff)}%06x"
+  lazy val actorSys = ActorSystem(s"santpSystem-${instanceId}")
 
-  var timeText: TextView = null
-  var offsetText: TextView = null
-  var offerrText: TextView = null
-  var offcntText: TextView = null
-  var offageText: TextView = null
+  lazy val timeText = findView[TextView](R.id.txt_time)
+  lazy val offsetText = findView[TextView](R.id.txt_offset)
+  lazy val offerrText = findView[TextView](R.id.txt_offerr)
+  lazy val offcntText = findView[TextView](R.id.txt_offcnt)
+  lazy val offageText = findView[TextView](R.id.txt_offage)
 
   val timeRefs = MutableList[ActorRef]()
   var uiUpdater: ActorRef = null
@@ -67,30 +68,24 @@ class SantpActivity extends android.app.Activity {
 
     setContentView(R.layout.appmain)
 
-    timeText = findView[TextView](R.id.txt_time)
-    offsetText = findView[TextView](R.id.txt_offset)
-    offerrText = findView[TextView](R.id.txt_offerr)
-    offcntText = findView[TextView](R.id.txt_offcnt)
-    offageText = findView[TextView](R.id.txt_offage)
+    initActors()
   }
 
   override def onStart() {
     super.onStart()
 
     Log.d(Config.LogName, "Starting NTP timer reference")
-
-    initActors()
   }
 
   override def onStop() {
     Log.d(Config.LogName, "Stopping SANTP")
 
-    stopActors()
-
     super.onStop()
   }
 
   override def onDestroy() {
+    stopActors()
+
     actorSys.shutdown
     actorSys.awaitTermination
 
@@ -130,10 +125,14 @@ class SantpActivity extends android.app.Activity {
                                        uiUpdater, timeCorrection),
                                  "TimeRefFuser")
 
-    timeRefs += actorSys.actorOf(AkkaProps(classOf[NTPtimeRef], fuser),
-                                 "NTPref")
-    timeRefs += actorSys.actorOf(AkkaProps(classOf[DebugTimeRef], fuser),
-                                 "RandRef")
+    val ntpHosts = Seq("1.uk.pool.ntp.org", "1.ie.pool.ntp.org",
+                       "2.fr.pool.ntp.org", "3.ch.pool.ntp.org",
+                       "0.europe.pool.ntp.org",
+                       "1.ca.pool.ntp.org",
+                       "3.north-america.pool.ntp.org",
+                       "2.debian.pool.ntp.org")
+    timeRefs += actorSys.actorOf(AkkaProps(classOf[NTPtimeRef],
+                                           fuser, ntpHosts), "NTPref")
 
     timeRefs.foreach {
       tr => tr ! UpdateRequest
