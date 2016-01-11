@@ -5,19 +5,28 @@ import android.util.Log
 import java.net.InetAddress
 import org.apache.commons.net.ntp.{NTPUDPClient, TimeInfo => NTPTimeInfo}
 import scala.concurrent.duration._
+import scala.util.Random
 
 
 abstract class TimeRef(fuser: ActorRef) extends Actor with CancellableScheduler {
   def receive = {
     case UpdateRequest => {
       update()
-      scheduleOnce(context.system, FiniteDuration(10, MINUTES),
+      scheduleOnce(context.system, FiniteDuration(20, MINUTES),
                    self, UpdateRequest)
+      Seq(1, 2, 5, 10).foreach { delay =>
+        scheduleOnce(context.system, FiniteDuration(delay, MINUTES),
+                     self, BriefUpdateRequest)
+      }
+    }
+    case BriefUpdateRequest => {
+      briefUpdate()
     }
     case ShutdownRequest => context.stop(self)
   }
 
   def update(): Unit
+  def briefUpdate(): Unit = {}
 
   override def postStop(): Unit = cancelScheduled()
 }
@@ -31,25 +40,39 @@ class NTPtimeRef(fuser: ActorRef,
   def update() {
     Log.d(Config.LogName, "NTPtimeRef.update()")
 
-    ntpAddresses.foreach { addr =>
-      try {
-        val info = ntpClient.getTime(addr)
-        info.computeDetails()
+    ntpAddresses.foreach {
+        addr => updateFromHost(addr)
+    }
+  }
 
-        val offdel = (Option(info.getOffset()),
-                      Option(info.getDelay()))
+  override def briefUpdate() {
+    Log.d(Config.LogName, "NTPtimeRef.briefUpdate()")
 
-        Log.d(Config.LogName, s"NTPtimeRef gave offset=${offdel}")
+    val addrs = Random.shuffle(ntpAddresses)
 
-        offdel match {
-          case (Some(offset), Some(delay)) =>
-                      fuser ! OffsetModel(offset.toDouble,
-                                          stddev_ms=0.5*delay.toDouble)
-          case _ =>   // Ignore
-        }
-      } catch {
-        case ex: Exception => Log.e(Config.LogName, s"NTP error: ${ex}")
+    if (addrs.length > 0) {
+      updateFromHost(addrs.head)
+    }
+  }
+
+  def updateFromHost(addr: InetAddress) {
+    try {
+      val info = ntpClient.getTime(addr)
+      info.computeDetails()
+
+      val offdel = (Option(info.getOffset()),
+                    Option(info.getDelay()))
+
+      Log.d(Config.LogName, s"NTPtimeRef gave offset=${offdel}")
+
+      offdel match {
+        case (Some(offset), Some(delay)) =>
+                    fuser ! OffsetModel(offset.toDouble,
+                                        stddev_ms=0.5*delay.toDouble)
+        case _ =>   // Ignore
       }
+    } catch {
+      case ex: Exception => Log.e(Config.LogName, s"NTP error: ${ex}")
     }
   }
 

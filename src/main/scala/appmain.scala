@@ -26,10 +26,12 @@ object Config {
  */
 case class UIupdater(ui: SantpActivity)
         extends Actor with CancellableScheduler {
+  val TickPeriodMS = 200
+
   def receive = {
     case ClockTick => {
       val correctedTime = ui.onClockTick()
-      val nextTick = 1000 - (correctedTime % 1000)
+      val nextTick = TickPeriodMS - (correctedTime % TickPeriodMS)
       scheduleOnce(context.system, FiniteDuration(nextTick, MILLISECONDS),
                    self, ClockTick)
     }
@@ -49,6 +51,7 @@ class SantpActivity extends android.app.Activity {
   lazy val actorSys = ActorSystem(s"santpSystem-${instanceId}")
 
   lazy val timeText = findView[TextView](R.id.txt_time)
+  lazy val fracText = findView[TextView](R.id.txt_frac)
   lazy val offsetText = findView[TextView](R.id.txt_offset)
   lazy val offerrText = findView[TextView](R.id.txt_offerr)
   lazy val offcntText = findView[TextView](R.id.txt_offcnt)
@@ -75,10 +78,14 @@ class SantpActivity extends android.app.Activity {
     super.onStart()
 
     Log.d(Config.LogName, "Starting NTP timer reference")
+
+    // FIXME - enable tick display updates
   }
 
   override def onStop() {
     Log.d(Config.LogName, "Stopping SANTP")
+
+    // FIXME - disable tick display updates
 
     super.onStop()
   }
@@ -96,14 +103,16 @@ class SantpActivity extends android.app.Activity {
     val sysTime = System.currentTimeMillis
     val correctedTime = timeCorrection(sysTime)
     val timeStr = timeFormatter.format(new Date(correctedTime))
+    val fracStr = f".${correctedTime % 1000}%03d"
     val age = (sysTime - timeCorrection.last_update) / 1000
 
     runOnUiThread({
         timeText.setText(timeStr)
+        fracText.setText(fracStr)
         offageText.setText(s"${age}s")
     })
 
-    correctedTime
+    timeCorrection(System.currentTimeMillis)
   }
 
   def updateModel(model: OffsetModel) {

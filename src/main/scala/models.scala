@@ -13,11 +13,22 @@ sealed trait AkkaMessage
 
 case object ClockTick extends AkkaMessage
 case object UpdateRequest extends AkkaMessage
+case object BriefUpdateRequest extends AkkaMessage
 case object ShutdownRequest extends AkkaMessage
 
 /**
  *  Simple time-offset model of true time relative to system clock.
  *  Nominally, this is in the form of a Gaussian probability distribution.
+ *
+ *  @param offset_ms      The estimated correction, in milliseconds,
+ *                        that should be added to the local system time
+ *                        to match the reference time.
+ *  @param stddev_ms      The nominal standard-deviation of the clock offset,
+ *                        in milliseconds.
+ *  @param n_measurements The effective number of independent measurements
+ *                        that have contributed to the current offset estimate.
+ *  @param last_update    The time at which measurements were last fused
+ *                        to form the current offset estimate.
  */
 case class OffsetModel(offset_ms: Double=0.0,
                        stddev_ms: Double=0.0,

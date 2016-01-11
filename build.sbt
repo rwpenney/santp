@@ -21,12 +21,18 @@ proguardOptions in Android ++= Seq(
     "-keep class akka.**",
     "-keep class akka.actor.LocalActorRefProvider$Guardian { *; }",
     "-keep class akka.actor.LocalActorRefProvider$SystemGuardian { *; }",
+    "-keep class akka.actor.RepointableActorRef { *; }",
     "-keep class akka.dispatch.UnboundedMailbox { *; }",
     "-keep class com.typesafe.**",
-    "-keep class scala.collection.immutable.Set",
+    "-keep class scala.collection.immutable.*",
+    "-keep class scala.collection.mutable.WrappedArray",
     "-keep class scala.Option",
     "-keep class scala.PartialFunction",
     "-keep class scala.concurrent.duration.*",
+    "-keep class uk.rwpenney.santp.*",
+    "-keep class uk.rwpenney.santp.NTPtimeRef { *; }",
+    "-keep class uk.rwpenney.santp.UIupdater { *; }",
+    "-keep class uk.rwpenney.santp.TimeRefFuser { *; }",
     "-printseeds target/seeds.txt", "-printusage target/usage.txt"
 )
 
