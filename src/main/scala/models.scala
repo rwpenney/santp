@@ -51,9 +51,25 @@ case class OffsetModel(offset_ms: Double=0.0,
     val mean = (muA * (sigB * sigB) + muB * (sigA * sigA)) / sig2
     val width = sigA * sigB / math.sqrt(sig2)
 
-    OffsetModel(offset_ms=mean, stddev_ms=width,
-                n_measurements=(n_measurements + m.n_measurements),
-                last_update=math.max(last_update, m.last_update))
+    OffsetModel(offset_ms = mean, stddev_ms = width,
+                n_measurements = (n_measurements + m.n_measurements),
+                last_update = math.max(last_update, m.last_update))
+  }
+
+  /**
+   *  Produce a degrade error-model by inflating the standard-deviation
+   *  according to its time of last update relative to the timing
+   *  of an observation from another clock reference,
+   *  and a (diffusive) timescale.
+   */
+  def degrade(obstime: Long, drifttime_ms: Double): OffsetModel = {
+    val age = obstime - last_update
+    if (age <= 0) {
+      this
+    } else {
+      val driftfrac = math.sqrt(1 + age / drifttime_ms)
+      this.copy(stddev_ms = stddev_ms * driftfrac)
+    }
   }
 }
 

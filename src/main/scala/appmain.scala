@@ -131,7 +131,8 @@ class SantpActivity extends android.app.Activity {
     uiUpdater = actorSys.actorOf(AkkaProps(classOf[UIupdater], this),
                                  "UIupdater")
     fuser = actorSys.actorOf(AkkaProps(classOf[TimeRefFuser],
-                                       uiUpdater, timeCorrection),
+                                       uiUpdater, timeCorrection,
+                                       10.0 * 60 * 1000),
                                  "TimeRefFuser")
 
     val ntpHosts = Seq("1.uk.pool.ntp.org", "1.ie.pool.ntp.org",
