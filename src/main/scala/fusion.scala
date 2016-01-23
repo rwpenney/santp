@@ -36,3 +36,21 @@ case class TimeRefFuser(consumer: ActorRef,
     }
   }
 }
+
+
+/**
+ *  Recursive estimator of mean and standard-deviation
+ *  of a sequence of samples, using exponential smoothing.
+ */
+class ExpoAverager(var mean: Double, var stddev: Double,
+                   val weight: Double) {
+  private var variance = stddev * stddev
+
+  def apply(datum: Double) = {
+    val delta = datum - mean
+    variance += weight * (delta * delta)
+    mean += weight * delta
+    stddev = Math.sqrt(variance)
+    this
+  }
+}

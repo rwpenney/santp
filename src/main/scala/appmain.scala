@@ -7,6 +7,7 @@ package uk.rwpenney.santp
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props => AkkaProps }
 import android.graphics.Color
+import android.location.{Location, LocationListener, LocationManager}
 import android.util.Log
 import android.widget.TextView
 import java.text.SimpleDateFormat
@@ -46,7 +47,7 @@ case class UIupdater(ui: SantpActivity)
 /**
  *  Top-level Activity for SANTP app.
  */
-class SantpActivity extends android.app.Activity {
+class SantpActivity extends android.app.Activity with GPSrefHelper {
   val instanceId = f"${(System.currentTimeMillis & 0xffffff)}%06x"
   lazy val actorSys = ActorSystem(s"santpSystem-${instanceId}")
 
@@ -137,12 +138,20 @@ class SantpActivity extends android.app.Activity {
 
     val ntpHosts = Seq("1.uk.pool.ntp.org", "1.ie.pool.ntp.org",
                        "2.fr.pool.ntp.org", "3.ch.pool.ntp.org",
-                       "0.europe.pool.ntp.org",
-                       "1.ca.pool.ntp.org",
+                       "3.europe.pool.ntp.org",
+                       "2.ca.pool.ntp.org",
                        "3.north-america.pool.ntp.org",
                        "2.debian.pool.ntp.org")
     timeRefs += actorSys.actorOf(AkkaProps(classOf[NTPtimeRef],
                                            fuser, ntpHosts), "NTPref")
+
+    val locMgr = Option(getSystemService(
+                              android.content.Context.LOCATION_SERVICE) .
+                          asInstanceOf[LocationManager])
+    locMgr match {
+      case Some(lm) => requestGPSupdates(lm)
+      case _ =>
+    }
 
     timeRefs.foreach {
       tr => tr ! UpdateRequest
@@ -170,5 +179,16 @@ class SantpActivity extends android.app.Activity {
           def run() { f }
         }
     )
+  }
+
+  def onLocationChanged(loc: Location) {
+    val sysTime = System.currentTimeMillis
+    val gpsTime = loc.getTime()
+    val deltaT = (gpsTime - sysTime).toDouble
+
+    Log.d(Config.LogName, s"GPSrefHelper.onLocationChanged(dt=${deltaT}ms)")
+
+    GPSdeltaStats(deltaT)
+    fuser ! OffsetModel(deltaT, GPSdeltaStats.stddev)
   }
 }
