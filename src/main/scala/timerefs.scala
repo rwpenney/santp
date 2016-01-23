@@ -80,7 +80,7 @@ class NTPtimeRef(fuser: ActorRef,
       offdel match {
         case (Some(offset), Some(delay)) =>
                     fuser ! OffsetModel(offset.toDouble,
-                                        stddev_ms=0.5*delay.toDouble)
+                                        stddev_ms=delay.toDouble)
         case _ =>   // Ignore
       }
     } catch {
@@ -120,7 +120,7 @@ class NTPtimeRef(fuser: ActorRef,
  *  See [[TimeRef]].
  */
 trait GPSrefHelper extends LocationListener {
-  val GPSdeltaStats = new ExpoAverager(0, 100, 0.2)
+  val GPSdeltaStats = new ExpoAverager(0, 200, 0.2)
 
   def requestGPSupdates(lm: LocationManager, interval_s: Int=19) {
     lm.requestLocationUpdates(LocationManager.GPS_PROVIDER,
