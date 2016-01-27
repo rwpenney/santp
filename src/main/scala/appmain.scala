@@ -136,12 +136,7 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
                                        10.0 * 60 * 1000),
                                  "TimeRefFuser")
 
-    val ntpHosts = Seq("1.uk.pool.ntp.org", "1.ie.pool.ntp.org",
-                       "2.fr.pool.ntp.org", "3.ch.pool.ntp.org",
-                       "3.europe.pool.ntp.org",
-                       "2.ca.pool.ntp.org",
-                       "3.north-america.pool.ntp.org",
-                       "2.debian.pool.ntp.org")
+    val ntpHosts = getNtpHosts()
     timeRefs += actorSys.actorOf(AkkaProps(classOf[NTPtimeRef],
                                            fuser, ntpHosts), "NTPref")
 
@@ -163,6 +158,13 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
     // Send shutdown signals to Actors which use scheduled messages:
     timeRefs.foreach(tr => tr ! ShutdownRequest)
     uiUpdater ! ShutdownRequest
+  }
+
+  /// Generate sequence of NTP hosts from android resource string-array
+  def getNtpHosts(): Seq[String] = {
+    val hostArr = getResources().obtainTypedArray(R.array.ntp_hosts)
+
+    for (i <- 0 until hostArr.length) yield hostArr.getString(i).toString
   }
 
   def findView[VT](id: Int): VT = findViewById(id).asInstanceOf[VT]

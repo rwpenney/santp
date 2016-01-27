@@ -5,4 +5,15 @@
   <dimen name="column_sep">12dip</dimen>
 
   <color name="color_modelparams">#222</color>
+
+  <string-array name="ntp_hosts">
+    <item>1.uk.pool.ntp.org</item>
+    <item>1.ie.pool.ntp.org</item>
+    <item>2.fr.pool.ntp.org</item>
+    <item>3.ch.pool.ntp.org</item>
+    <item>3.europe.pool.ntp.org</item>
+    <item>2.ca.pool.ntp.org</item>
+    <item>3.north-america.pool.ntp.org</item>
+    <item>2.debian.pool.ntp.org</item>
+  </string-array>
 </resources>
