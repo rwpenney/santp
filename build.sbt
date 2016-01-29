@@ -23,7 +23,6 @@ proguardOptions in Android ++= Seq(
     "-keep class akka.actor.LocalActorRefProvider$SystemGuardian { *; }",
     "-keep class akka.actor.RepointableActorRef { *; }",
     "-keep class akka.dispatch.UnboundedMailbox { *; }",
-    "-keep class com.typesafe.**",
     "-keep class scala.collection.mutable.WrappedArray",
     "-keep class scala.Option",
     "-keep class scala.PartialFunction",

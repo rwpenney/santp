@@ -136,13 +136,40 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
                                        10.0 * 60 * 1000),
                                  "TimeRefFuser")
 
-    val ntpHosts = getNtpHosts()
-    timeRefs += actorSys.actorOf(AkkaProps(classOf[NTPtimeRef],
-                                           fuser, ntpHosts), "NTPref")
-
     val locMgr = Option(getSystemService(
                               android.content.Context.LOCATION_SERVICE) .
                           asInstanceOf[LocationManager])
+    val defaultLoc = (50.0, 0.0)
+    // FIXME - get default location from XML resource
+
+    val lastLoc = locMgr match {
+      case Some(lm) => {
+        val loc = Option(lm.getLastKnownLocation(
+                            LocationManager.PASSIVE_PROVIDER))
+        loc match {
+          case Some(x) => (x.getLatitude, x.getLongitude)
+          case None => defaultLoc
+        }
+      }
+      case None => defaultLoc
+    }
+
+    val jstrm = getResources().openRawResource(R.raw.ntpzones)
+    val ntpmap = NtpZones(jstrm)
+
+    // FIXME - parse json ntp-host database
+
+    val ntpHosts = locMgr match {
+      case Some(lm) => {
+        val loc = Option(lm.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER))
+        Log.d(Config.LogName, "Last known location: "+ loc)
+        getNtpHosts()   // FIXME - replace with location-specific NTP hosts
+      }
+      case _ => getNtpHosts()
+    }
+    timeRefs += actorSys.actorOf(AkkaProps(classOf[NTPtimeRef],
+                                           fuser, ntpHosts), "NTPref")
+
     locMgr match {
       case Some(lm) => requestGPSupdates(lm)
       case _ =>

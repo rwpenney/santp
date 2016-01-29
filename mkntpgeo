@@ -1,0 +1,95 @@
+#!/usr/bin/python3
+# Convert country data into template NTP host list in JSON format
+# RW Penney, January 2016
+
+# Countries of World data from http://www.opengeocode.org/download.php
+
+import argparse, csv, json, math
+from collections import namedtuple
+
+COWsummary = namedtuple('COWsummary',
+                        ('name', 'code', 'coord', 'area', 'population'))
+
+
+def ingestCOW(fp):
+    countries = []
+
+    reader = csv.DictReader(fp)
+    _ = next(reader)
+    lastcountry, subrow = None, 0
+
+    for row in reader:
+        code = row['ISO 3166-1 A2']
+        if code != lastcountry:
+            subrow = 1
+            lastcountry = code
+        else:
+            subrow += 1
+
+        if subrow == 1:
+            coord, area, popln = [ row[f] for f in (' Coord', ' Area (sq km)',
+                                                    ' Population') ]
+        elif subrow == 4:
+            name = row[' Abbr']
+
+        if subrow == 20:
+            try:
+                lat, lng = tuple(float(x) for x in coord.split(','))
+		# FIXME - some lat/lng entries are malformed in raw data
+                countries.append(COWsummary(name, code, (lat, lng),
+                                            float(area), int(popln)))
+            except ValueError as ex:
+                pass
+
+    return countries
+
+
+def filterCOW(countries, poprank=50, inclusions=set()):
+    ranked = sorted(countries, key=lambda c: c.population, reverse=True)
+
+    filtered = [ c for idx, c in enumerate(ranked)
+                    if idx <= poprank or c.code in inclusions ]
+
+    return sorted(filtered, key=lambda c: c.name)
+
+
+def buildDict(countries):
+    points = []
+
+    for c in countries:
+        meta = { 'code':        c.code,
+                 'latitude':    round(c.coord[0], 1),
+                 'longitude':   round(c.coord[1], 1),
+                 'radius':      round(math.sqrt(c.area / 3.14), 0),
+                 'ntphosts':    [ '0.{}.pool.ntp.org'.format(c.code.lower()) ]
+               }
+        points.append((c.name, meta))
+
+    return dict(points)
+
+
+def main():
+    default_inclusions = 'AU,BR,CA,FR,GB,IE,JP,US,ZA'
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-n', '--num-largest', type=int, default=20,
+                help='Number of countries, ranked by population')
+    parser.add_argument('-i', '--inclusions', type=str,
+                default=default_inclusions,
+                help='ISO codes of countries to include')
+    parser.add_argument('cowfile', metavar='COW', type=str, nargs=1,
+                   help='a backup target or action to perform')
+    args = parser.parse_args()
+
+    inclusions = set(args.inclusions.split(','))
+
+    with open(args.cowfile[0], 'rt') as fp:
+        countries = filterCOW(ingestCOW(fp),
+                              poprank=args.num_largest,
+                              inclusions=inclusions)
+
+        d = buildDict(countries)
+        print(json.dumps(d, indent=2, sort_keys=True))
+
+
+if __name__ == '__main__':
+    main()

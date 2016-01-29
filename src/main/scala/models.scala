@@ -74,6 +74,9 @@ case class OffsetModel(offset_ms: Double=0.0,
 }
 
 
+/**
+ *  Akka mix-in to allow easy cancellation of a scheduled task.
+ */
 trait CancellableScheduler {
   var task: Option[Cancellable] = None
 
