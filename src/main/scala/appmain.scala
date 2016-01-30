@@ -51,12 +51,13 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
   val instanceId = f"${(System.currentTimeMillis & 0xffffff)}%06x"
   lazy val actorSys = ActorSystem(s"santpSystem-${instanceId}")
 
-  lazy val timeText = findView[TextView](R.id.txt_time)
-  lazy val fracText = findView[TextView](R.id.txt_frac)
+  lazy val timeText =   findView[TextView](R.id.txt_time)
+  lazy val fracText =   findView[TextView](R.id.txt_frac)
   lazy val offsetText = findView[TextView](R.id.txt_offset)
   lazy val offerrText = findView[TextView](R.id.txt_offerr)
   lazy val offcntText = findView[TextView](R.id.txt_offcnt)
   lazy val offageText = findView[TextView](R.id.txt_offage)
+  lazy val hostsText =  findView[TextView](R.id.txt_hosts)
 
   val timeRefs = MutableList[ActorRef]()
   var uiUpdater: ActorRef = null
@@ -139,7 +140,7 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
     val locMgr = Option(getSystemService(
                               android.content.Context.LOCATION_SERVICE) .
                           asInstanceOf[LocationManager])
-    val defaultLoc = (50.0, 0.0)
+    val defaultLoc = GeoPos(54.0, -1.0)
     // FIXME - get default location from XML resource
 
     val lastLoc = locMgr match {
@@ -147,7 +148,7 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
         val loc = Option(lm.getLastKnownLocation(
                             LocationManager.PASSIVE_PROVIDER))
         loc match {
-          case Some(x) => (x.getLatitude, x.getLongitude)
+          case Some(x) => GeoPos(x.getLatitude, x.getLongitude)
           case None => defaultLoc
         }
       }
@@ -156,19 +157,12 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
 
     val jstrm = getResources().openRawResource(R.raw.ntpzones)
     val ntpmap = NtpZones(jstrm)
-
-    // FIXME - parse json ntp-host database
-
-    val ntpHosts = locMgr match {
-      case Some(lm) => {
-        val loc = Option(lm.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER))
-        Log.d(Config.LogName, "Last known location: "+ loc)
-        getNtpHosts()   // FIXME - replace with location-specific NTP hosts
-      }
-      case _ => getNtpHosts()
-    }
+    val (ntpHosts, ntpZones) = ntpmap.getHosts(lastLoc)
     timeRefs += actorSys.actorOf(AkkaProps(classOf[NTPtimeRef],
                                            fuser, ntpHosts), "NTPref")
+
+    val zoneSummary = ntpZones.mkString("{ ", ", ", " }")
+    hostsText.setText(s"${ntpHosts.length} NTP servers in ${zoneSummary}")
 
     locMgr match {
       case Some(lm) => requestGPSupdates(lm)
@@ -185,13 +179,6 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
     // Send shutdown signals to Actors which use scheduled messages:
     timeRefs.foreach(tr => tr ! ShutdownRequest)
     uiUpdater ! ShutdownRequest
-  }
-
-  /// Generate sequence of NTP hosts from android resource string-array
-  def getNtpHosts(): Seq[String] = {
-    val hostArr = getResources().obtainTypedArray(R.array.ntp_hosts)
-
-    for (i <- 0 until hostArr.length) yield hostArr.getString(i).toString
   }
 
   def findView[VT](id: Int): VT = findViewById(id).asInstanceOf[VT]

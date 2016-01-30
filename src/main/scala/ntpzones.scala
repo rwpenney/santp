@@ -9,14 +9,44 @@ import scala.collection.mutable.{HashMap, ListBuffer}
  *  Representation of a geographic region with a collection of NTP hosts
  */
 case class Zone(code: String="", ntphosts: List[String]=Nil,
-                latitude: Double=0, longitude: Double=0, radius: Double=1)
+                pos: GeoPos=GeoPos(), radius: Double=1)
 
 
 /**
  *  A collection of geographic regions with location-specific NTP lookups
  */
 class NtpZones(zonedict: Map[String, Zone]) {
-  def getHosts(): Unit = {}
+  def getHosts(pos: GeoPos, minCount: Int=8) = {
+    val distances = (for {
+        (ident, zone) <- zonedict
+        d = pos.separation(zone.pos) / zone.radius
+        nhosts = zone.ntphosts.length
+    } yield (d, nhosts, ident)).toList.sorted
+
+    val counts = distances.scanLeft((0, "nowhere")) {
+      case ((count, _), (d, nh, id)) => (count + nh, id)
+    } . tail
+
+    val tgtCount = counts.find {
+      case (count, id) => (count >= minCount)
+    } match {
+      case Some((count, id)) => count
+      case None => minCount
+    }
+    val nearZones = counts.takeWhile {
+      case (count, id) => (count <= tgtCount)
+    } map {
+      case (count, id) => id
+    }
+
+    Log.d(Config.LogName, "Nearest NTP zones: " + nearZones.toString)
+
+    val hosts = (for {
+      z <- nearZones
+    } yield zonedict(z).ntphosts) . flatten
+
+    (hosts, nearZones)
+  }
 }
 
 
@@ -41,8 +71,6 @@ object NtpZones {
       val zone = rdr.nextName
       val zdef = readZone(rdr)
       zones += (zone -> zdef)
-
-      Log.d(Config.LogName, s"${zone} -> ${zdef}")
     }
     rdr.endObject()
 
@@ -57,8 +85,10 @@ object NtpZones {
       val field = rdr.nextName
       zdef = field match {
         case "code" =>      zdef.copy(code=rdr.nextString)
-        case "latitude" =>  zdef.copy(latitude=rdr.nextDouble)
-        case "longitude" => zdef.copy(longitude=rdr.nextDouble)
+        case "latitude" =>  zdef.copy(pos=zdef.pos.copy(
+                                              latitude=rdr.nextDouble))
+        case "longitude" => zdef.copy(pos=zdef.pos.copy(
+                                              longitude=rdr.nextDouble))
         case "ntphosts" =>  zdef.copy(ntphosts=readHosts(rdr))
         case "radius" =>    zdef.copy(radius=rdr.nextDouble)
         case _ => zdef

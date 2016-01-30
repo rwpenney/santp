@@ -62,4 +62,10 @@
         android:gravity="left"/>
     </TableRow>
   </TableLayout>
+  <TextView android:id="@+id/txt_hosts"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="(something soon)"
+    android:textSize="@dimen/textsize_model"
+    android:gravity="left"/>
 </LinearLayout>

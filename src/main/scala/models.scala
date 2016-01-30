@@ -75,6 +75,37 @@ case class OffsetModel(offset_ms: Double=0.0,
 
 
 /**
+ *  Representation of a point on the surface of a spherical Earth
+ */
+case class GeoPos(latitude: Double=0, longitude: Double=0) {
+  val EarthRadius = 6371.0
+
+  def separation(other: GeoPos) = {
+    val v0 = toUnitVec
+    val v1 = other.toUnitVec
+
+    val dot = (v0 zip v1) map { case (c0, c1) => c0 * c1 } reduce(_ + _)
+
+    if (Math.abs(dot) < 1.0) {
+      Math.acos(dot) * EarthRadius
+    } else {
+      0.0
+    }
+  }
+
+  /// Convert to a 3D Cartesian unit-vector
+  def toUnitVec() = {
+    val theta = Math.toRadians(90 - latitude)
+    val phi = Math.toRadians(longitude)
+    val cosTheta = Math.cos(theta)
+    val sinTheta = Math.sin(theta)
+
+    List(sinTheta * Math.cos(phi), sinTheta * Math.sin(phi), cosTheta)
+  }
+}
+
+
+/**
  *  Akka mix-in to allow easy cancellation of a scheduled task.
  */
 trait CancellableScheduler {

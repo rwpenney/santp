@@ -69,7 +69,7 @@ def buildDict(countries):
 
 
 def main():
-    default_inclusions = 'AU,BR,CA,FR,GB,IE,JP,US,ZA'
+    default_inclusions = 'AU,BR,CA,FR,GB,JP,US,ZA'
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--num-largest', type=int, default=20,
                 help='Number of countries, ranked by population')
