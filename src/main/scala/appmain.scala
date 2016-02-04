@@ -140,29 +140,15 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
     val locMgr = Option(getSystemService(
                               android.content.Context.LOCATION_SERVICE) .
                           asInstanceOf[LocationManager])
-    val defaultLoc = GeoPos(54.0, -1.0)
-    // FIXME - get default location from XML resource
 
-    val lastLoc = locMgr match {
-      case Some(lm) => {
-        val loc = Option(lm.getLastKnownLocation(
-                            LocationManager.PASSIVE_PROVIDER))
-        loc match {
-          case Some(x) => GeoPos(x.getLatitude, x.getLongitude)
-          case None => defaultLoc
-        }
-      }
-      case None => defaultLoc
-    }
-
+    val lastLoc = estimateLocation(locMgr)
     val jstrm = getResources().openRawResource(R.raw.ntpzones)
     val ntpmap = NtpZones(jstrm)
     val (ntpHosts, ntpZones) = ntpmap.getHosts(lastLoc)
     timeRefs += actorSys.actorOf(AkkaProps(classOf[NTPtimeRef],
                                            fuser, ntpHosts), "NTPref")
 
-    val zoneSummary = ntpZones.mkString("{ ", ", ", " }")
-    hostsText.setText(s"${ntpHosts.length} NTP servers in ${zoneSummary}")
+    setLocHostText(lastLoc, ntpHosts, ntpZones)
 
     locMgr match {
       case Some(lm) => requestGPSupdates(lm)
@@ -179,6 +165,34 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
     // Send shutdown signals to Actors which use scheduled messages:
     timeRefs.foreach(tr => tr ! ShutdownRequest)
     uiUpdater ! ShutdownRequest
+  }
+
+  def estimateLocation(locMgr: Option[LocationManager]): GeoPos = {
+    val defaultLoc = GeoPos(getString(R.string.default_geopos))
+
+    val geopos = locMgr match {
+      case Some(lm) => {
+        val loc = Option(lm.getLastKnownLocation(
+                            LocationManager.PASSIVE_PROVIDER))
+        loc match {
+          case Some(x) => GeoPos(x.getLatitude, x.getLongitude)
+          case None =>    defaultLoc
+        }
+      }
+      case None => defaultLoc
+    }
+
+    Log.d(Config.LogName, s"Location estimated as ${geopos}")
+
+    geopos
+  }
+
+  def setLocHostText(loc: GeoPos, hosts: Seq[String], zones: Seq[String]) = {
+    val locSummary = f"${loc.latitude}%.1f, ${loc.longitude}%.1f"
+    val nHosts = hosts.length
+    val zoneSummary = zones.mkString("{ ", ", ", " }")
+
+    hostsText.setText(s"Location: ${locSummary}\n${nHosts} NTP servers\nZones: ${zoneSummary}")
   }
 
   def findView[VT](id: Int): VT = findViewById(id).asInstanceOf[VT]

@@ -104,6 +104,15 @@ case class GeoPos(latitude: Double=0, longitude: Double=0) {
   }
 }
 
+object GeoPos {
+  /// Create GeoPos from lat,lng string
+  def apply(s: String) = {
+    val latlng = s.split(",").map(_.toFloat)
+
+    new GeoPos(latlng(0), latlng(1))
+  }
+}
+
 
 /**
  *  Akka mix-in to allow easy cancellation of a scheduled task.

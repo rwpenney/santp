@@ -3,6 +3,7 @@ package uk.rwpenney.santp
 import android.util.{JsonReader, Log}
 import java.io.{InputStream, InputStreamReader}
 import scala.collection.mutable.{HashMap, ListBuffer}
+import scala.util.Random
 
 
 /**
@@ -16,7 +17,16 @@ case class Zone(code: String="", ntphosts: List[String]=Nil,
  *  A collection of geographic regions with location-specific NTP lookups
  */
 class NtpZones(zonedict: Map[String, Zone]) {
-  def getHosts(pos: GeoPos, minCount: Int=8) = {
+  /**
+   *  Generate a collection of NTP hosts near a given location.
+   *
+   *  @param pos        The chosen location on the Earth's surface.
+   *  @param minCount   The minimum number of NTP hosts to return.
+   *  @param shuffle    Whether the host list is shuffled (true),
+   *                    of grouped by region (false).
+   */
+  def getHosts(pos: GeoPos, minCount: Int=8,
+               shuffle: Boolean=true): (Seq[String], Seq[String]) = {
     val distances = (for {
         (ident, zone) <- zonedict
         d = pos.separation(zone.pos) / zone.radius
@@ -45,7 +55,13 @@ class NtpZones(zonedict: Map[String, Zone]) {
       z <- nearZones
     } yield zonedict(z).ntphosts) . flatten
 
-    (hosts, nearZones)
+    (if (shuffle) {
+       Random.shuffle(hosts)
+     } else {
+       hosts
+     },
+     nearZones
+    )
   }
 }
 
