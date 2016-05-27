@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="app_name">Scala Android NTP</string>
+
+  <string name="offset_label">Offset: </string>
+  <string name="stddev_label">StdDev: </string>
+  <string name="count_label">Count: </string>
+  <string name="age_label">Age: </string>
 </resources>

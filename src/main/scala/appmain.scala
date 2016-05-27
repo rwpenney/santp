@@ -168,12 +168,20 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
   }
 
   def estimateLocation(locMgr: Option[LocationManager]): GeoPos = {
+    import android.location.Criteria
+
+    val locCriteria = new Criteria()
+    locCriteria.setCostAllowed(false)
+    locCriteria.setPowerRequirement(Criteria.POWER_LOW)
+    locCriteria.setAccuracy(Criteria.ACCURACY_COARSE)
+
     val defaultLoc = GeoPos(getString(R.string.default_geopos))
 
     val geopos = locMgr match {
       case Some(lm) => {
-        val loc = Option(lm.getLastKnownLocation(
-                            LocationManager.PASSIVE_PROVIDER))
+        val provider = lm.getBestProvider(locCriteria, true)
+        Log.d(Config.LogName, s"Using location provider ${provider}")
+        val loc = Option(lm.getLastKnownLocation(provider))
         loc match {
           case Some(x) => GeoPos(x.getLatitude, x.getLongitude)
           case None =>    defaultLoc
