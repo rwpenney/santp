@@ -1,7 +1,7 @@
 package uk.rwpenney.santp
 
 import akka.actor.{Actor, ActorRef}
-import android.location.{LocationListener, LocationManager}
+import android.location.{Location, LocationListener, LocationManager}
 import android.util.Log
 import java.net.InetAddress
 import org.apache.commons.net.ntp.{NTPUDPClient, TimeInfo => NTPTimeInfo}
@@ -125,6 +125,11 @@ trait GPSrefHelper extends LocationListener {
   def requestGPSupdates(lm: LocationManager, interval_s: Int=19) {
     lm.requestLocationUpdates(LocationManager.GPS_PROVIDER,
                               interval_s * 1000, 0.0f, this)
+  }
+
+  def requestCrudeUpdates(lm: LocationManager, interval_mins: Int=5) {
+    lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
+                              interval_mins * 60 * 1000, 20e3f, this)
   }
 
   def onProviderDisabled(p: String) {}

@@ -141,6 +141,14 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
                               android.content.Context.LOCATION_SERVICE) .
                           asInstanceOf[LocationManager])
 
+    locMgr match {
+      case Some(lm) => {
+        requestCrudeUpdates(lm)
+        requestGPSupdates(lm)
+      }
+      case _ =>
+    }
+
     val lastLoc = estimateLocation(locMgr)
     val jstrm = getResources().openRawResource(R.raw.ntpzones)
     val ntpmap = NtpZones(jstrm)
@@ -149,11 +157,6 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
                                            fuser, ntpHosts), "NTPref")
 
     setLocHostText(lastLoc, ntpHosts, ntpZones)
-
-    locMgr match {
-      case Some(lm) => requestGPSupdates(lm)
-      case _ =>
-    }
 
     timeRefs.foreach {
       tr => tr ! UpdateRequest
@@ -168,26 +171,35 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
   }
 
   def estimateLocation(locMgr: Option[LocationManager]): GeoPos = {
-    import android.location.Criteria
-
-    val locCriteria = new Criteria()
-    locCriteria.setCostAllowed(false)
-    locCriteria.setPowerRequirement(Criteria.POWER_LOW)
-    locCriteria.setAccuracy(Criteria.ACCURACY_COARSE)
+    import scala.collection.JavaConverters._
 
     val defaultLoc = GeoPos(getString(R.string.default_geopos))
+    val now = System.currentTimeMillis
 
     val geopos = locMgr match {
       case Some(lm) => {
-        val provider = lm.getBestProvider(locCriteria, true)
-        Log.d(Config.LogName, s"Using location provider ${provider}")
-        val loc = Option(lm.getLastKnownLocation(provider))
-        loc match {
-          case Some(x) => GeoPos(x.getLatitude, x.getLongitude)
-          case None =>    defaultLoc
+        val providers = lm.getProviders(false).asScala
+        val accRate = 0.01    // Nominal rate of loss of positional accuracy
+        val locs = providers.flatMap {
+                                p => Option(lm.getLastKnownLocation(p)) } .
+                           sortBy(loc => (loc.getAccuracy
+                                            + (now - loc.getTime) * accRate))
+
+        if (locs.length >= 1) {
+          val loc = locs.head
+          Log.i(Config.LogName, s"Best location provider of ${locs.length}: " +
+                                s"${loc.getProvider}")
+          GeoPos(loc.getLatitude, loc.getLongitude)
+        } else{
+          Log.w(Config.LogName, s"No usable location providers")
+          defaultLoc
         }
       }
-      case None => defaultLoc
+
+      case None => {
+        Log.w(Config.LogName, s"No LocationManager available")
+        defaultLoc
+      }
     }
 
     Log.d(Config.LogName, s"Location estimated as ${geopos}")
@@ -224,9 +236,15 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
     val gpsTime = loc.getTime()
     val deltaT = (gpsTime - sysTime).toDouble
 
-    Log.d(Config.LogName, s"GPSrefHelper.onLocationChanged(dt=${deltaT}ms)")
-
-    GPSdeltaStats(deltaT)
-    fuser ! OffsetModel(deltaT, GPSdeltaStats.stddev)
+    loc.getProvider match {
+      case LocationManager.GPS_PROVIDER => {
+        Log.d(Config.LogName, s"GPS location update (dt=${deltaT}ms)")
+        GPSdeltaStats(deltaT)
+        fuser ! OffsetModel(deltaT, GPSdeltaStats.stddev)
+      }
+      case _ => {
+        Log.w(Config.LogName, s"Unused location update from ${loc.getProvider}")
+      }
+    }
   }
 }
