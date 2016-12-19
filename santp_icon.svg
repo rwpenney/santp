@@ -16,9 +16,9 @@
    width="72"
    height="72"
    sodipodi:docname="santp_icon.svg"
-   inkscape:export-filename="/home/richard/projects/santp/icon-xxxhdpi.png"
-   inkscape:export-xdpi="240"
-   inkscape:export-ydpi="240">
+   inkscape:export-filename="/home/richard/projects/santp/72.png"
+   inkscape:export-xdpi="90"
+   inkscape:export-ydpi="90">
   <metadata
      id="metadata2991">
     <rdf:RDF>
@@ -70,12 +70,12 @@
      id="namedview2987"
      showgrid="true"
      inkscape:zoom="9.4280903"
-     inkscape:cx="21.495855"
+     inkscape:cx="21.707987"
      inkscape:cy="36"
      inkscape:window-x="137"
      inkscape:window-y="17"
      inkscape:window-maximized="0"
-     inkscape:current-layer="layer5"
+     inkscape:current-layer="layer3"
      inkscape:snap-global="true">
     <inkscape:grid
        type="xygrid"
@@ -148,7 +148,10 @@
        sodipodi:rx="29.1"
        sodipodi:ry="29.1"
        d="M 43.200001,17.4 A 29.1,29.1 0 1 1 -15,17.4 a 29.1,29.1 0 1 1 58.200001,0 z"
-       transform="translate(22.8,13.5)" />
+       transform="translate(21.5,13.5)"
+       inkscape:export-filename="/home/richard/projects/santp/72.png"
+       inkscape:export-xdpi="109.48257"
+       inkscape:export-ydpi="109.48257" />
   </g>
   <g
      inkscape:groupmode="layer"

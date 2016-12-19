@@ -25,6 +25,8 @@ case class TimeRefFuser(consumer: ActorRef,
       mergedModel = combine(degraded, newmodel)
       consumer ! mergedModel
     }
+
+    case msg: NtpStatus => consumer ! msg
   }
 
   def combine(m1: OffsetModel, m2: OffsetModel) = {

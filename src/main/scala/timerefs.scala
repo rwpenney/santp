@@ -26,13 +26,13 @@ abstract class TimeRef(fuser: ActorRef) extends Actor with CancellableScheduler 
                      self, BriefUpdateRequest)
       }
     }
-    case BriefUpdateRequest => {
-      briefUpdate()
-    }
-    case ShutdownRequest => context.stop(self)
+    case BriefUpdateRequest =>  briefUpdate()
+    case pos: GeoPos =>         deviceMovedTo(pos)
+    case ShutdownRequest =>     context.stop(self)
   }
 
   def update(): Unit
+  def deviceMovedTo(pos: GeoPos): Unit = {}
   def briefUpdate(): Unit = {}
 
   override def postStop(): Unit = cancelScheduled()
@@ -43,10 +43,9 @@ abstract class TimeRef(fuser: ActorRef) extends Actor with CancellableScheduler 
  *  Clock-offset estimator using Network Time Protocol,
  *  using multiple network hosts.
  */
-class NTPtimeRef(fuser: ActorRef,
-                 hosts: Seq[String])
-    extends TimeRef(fuser) {
-  val ntpAddresses = addrLookup(hosts)
+class NTPtimeRef(ntpmap: NtpZones, fuser: ActorRef)
+        extends TimeRef(fuser) {
+  var ntpAddresses: Seq[InetAddress] = Nil
   val ntpClient = initClient()
 
   def update() {
@@ -65,6 +64,17 @@ class NTPtimeRef(fuser: ActorRef,
     if (addrs.length > 0) {
       updateFromHost(addrs.head)
     }
+  }
+
+  override def deviceMovedTo(pos: GeoPos) {
+    val (hosts, zones) = ntpmap.getHosts(pos)
+
+    ntpAddresses = addrLookup(hosts)
+
+    val nHosts = hosts.length
+    val zoneSummary = zones.mkString("{ ", ", ", " }")
+
+    fuser ! NtpStatus(s"${nHosts} NTP servers\nZones: ${zoneSummary}")
   }
 
   def updateFromHost(addr: InetAddress) {
@@ -110,31 +120,6 @@ class NTPtimeRef(fuser: ActorRef,
       }
     }
   }
-}
-
-
-/**
- *  Mixin to assist with converting GPS location updates
- *  into clock-offset measurements
- *
- *  See [[TimeRef]].
- */
-trait GPSrefHelper extends LocationListener {
-  val GPSdeltaStats = new ExpoAverager(0, 200, 0.2)
-
-  def requestGPSupdates(lm: LocationManager, interval_s: Int=19) {
-    lm.requestLocationUpdates(LocationManager.GPS_PROVIDER,
-                              interval_s * 1000, 0.0f, this)
-  }
-
-  def requestCrudeUpdates(lm: LocationManager, interval_mins: Int=5) {
-    lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
-                              interval_mins * 60 * 1000, 20e3f, this)
-  }
-
-  def onProviderDisabled(p: String) {}
-  def onProviderEnabled(p: String) {}
-  def onStatusChanged(p: String, status: Int, extras: android.os.Bundle) {}
 }
 
 

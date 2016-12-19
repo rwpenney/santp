@@ -36,8 +36,10 @@ case class UIupdater(ui: SantpActivity)
       scheduleOnce(context.system, FiniteDuration(nextTick, MILLISECONDS),
                    self, ClockTick)
     }
-    case model: OffsetModel => ui.updateModel(model)
-    case ShutdownRequest => context.stop(self)
+    case model: OffsetModel =>  ui.updateModel(model)
+    case pos: GeoPos =>         ui.displayLocation(pos)
+    case NtpStatus(msg) =>      ui.displayNtpStatus(msg)
+    case ShutdownRequest =>     context.stop(self)
   }
 
   override def postStop(): Unit = cancelScheduled()
@@ -47,7 +49,7 @@ case class UIupdater(ui: SantpActivity)
 /**
  *  Top-level Activity for SANTP app.
  */
-class SantpActivity extends android.app.Activity with GPSrefHelper {
+class SantpActivity extends android.app.Activity with GeoLocator {
   val instanceId = f"${(System.currentTimeMillis & 0xffffff)}%06x"
   lazy val actorSys = ActorSystem(s"santpSystem-${instanceId}")
 
@@ -57,11 +59,13 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
   lazy val offerrText = findView[TextView](R.id.txt_offerr)
   lazy val offcntText = findView[TextView](R.id.txt_offcnt)
   lazy val offageText = findView[TextView](R.id.txt_offage)
-  lazy val hostsText =  findView[TextView](R.id.txt_hosts)
+  lazy val geolocText = findView[TextView](R.id.txt_geoloc)
+  lazy val ntpText =    findView[TextView](R.id.txt_ntphosts)
 
   val timeRefs = MutableList[ActorRef]()
   var uiUpdater: ActorRef = null
   var fuser: ActorRef = null
+  var ntpRef: ActorRef = null
   var timeCorrection = OffsetModel(stddev_ms=5*60*1000, n_measurements=0,
                                    last_update=0)
   var timeFormatter = new SimpleDateFormat("HH:mm:ss")
@@ -137,26 +141,18 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
                                        10.0 * 60 * 1000),
                                  "TimeRefFuser")
 
+    val jstrm = getResources().openRawResource(R.raw.ntpzones)
+    val ntpmap = NtpZones(jstrm)
+    ntpRef = actorSys.actorOf(AkkaProps(classOf[NTPtimeRef],
+                                        ntpmap, fuser), "NTPref")
+    timeRefs += ntpRef
+
+    val defaultPos = GeoPos(getString(R.string.default_geopos))
     val locMgr = Option(getSystemService(
                               android.content.Context.LOCATION_SERVICE) .
                           asInstanceOf[LocationManager])
-
-    locMgr match {
-      case Some(lm) => {
-        requestCrudeUpdates(lm)
-        requestGPSupdates(lm)
-      }
-      case _ =>
-    }
-
-    val lastLoc = estimateLocation(locMgr)
-    val jstrm = getResources().openRawResource(R.raw.ntpzones)
-    val ntpmap = NtpZones(jstrm)
-    val (ntpHosts, ntpZones) = ntpmap.getHosts(lastLoc)
-    timeRefs += actorSys.actorOf(AkkaProps(classOf[NTPtimeRef],
-                                           fuser, ntpHosts), "NTPref")
-
-    setLocHostText(lastLoc, ntpHosts, ntpZones)
+    initLocUpdates(locMgr, defaultPos)
+    updateLocation(lastKnownLocation, Seq(ntpRef, fuser, uiUpdater))
 
     timeRefs.foreach {
       tr => tr ! UpdateRequest
@@ -170,49 +166,18 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
     uiUpdater ! ShutdownRequest
   }
 
-  def estimateLocation(locMgr: Option[LocationManager]): GeoPos = {
-    import scala.collection.JavaConverters._
+  def displayLocation(pos: GeoPos) {
+    val locSummary = f"${pos.latitude}%.2f, ${pos.longitude}%.2f"
 
-    val defaultLoc = GeoPos(getString(R.string.default_geopos))
-    val now = System.currentTimeMillis
-
-    val geopos = locMgr match {
-      case Some(lm) => {
-        val providers = lm.getProviders(false).asScala
-        val accRate = 0.01    // Nominal rate of loss of positional accuracy
-        val locs = providers.flatMap {
-                                p => Option(lm.getLastKnownLocation(p)) } .
-                           sortBy(loc => (loc.getAccuracy
-                                            + (now - loc.getTime) * accRate))
-
-        if (locs.length >= 1) {
-          val loc = locs.head
-          Log.i(Config.LogName, s"Best location provider of ${locs.length}: " +
-                                s"${loc.getProvider}")
-          GeoPos(loc.getLatitude, loc.getLongitude)
-        } else{
-          Log.w(Config.LogName, s"No usable location providers")
-          defaultLoc
-        }
-      }
-
-      case None => {
-        Log.w(Config.LogName, s"No LocationManager available")
-        defaultLoc
-      }
-    }
-
-    Log.d(Config.LogName, s"Location estimated as ${geopos}")
-
-    geopos
+    runOnUiThread({
+      geolocText.setText(s"Location: ${locSummary}")
+    })
   }
 
-  def setLocHostText(loc: GeoPos, hosts: Seq[String], zones: Seq[String]) = {
-    val locSummary = f"${loc.latitude}%.1f, ${loc.longitude}%.1f"
-    val nHosts = hosts.length
-    val zoneSummary = zones.mkString("{ ", ", ", " }")
-
-    hostsText.setText(s"Location: ${locSummary}\n${nHosts} NTP servers\nZones: ${zoneSummary}")
+  def displayNtpStatus(msg: String) {
+    runOnUiThread({
+      ntpText.setText(msg)
+    })
   }
 
   def findView[VT](id: Int): VT = findViewById(id).asInstanceOf[VT]
@@ -239,12 +204,19 @@ class SantpActivity extends android.app.Activity with GPSrefHelper {
     loc.getProvider match {
       case LocationManager.GPS_PROVIDER => {
         Log.d(Config.LogName, s"GPS location update (dt=${deltaT}ms)")
-        GPSdeltaStats(deltaT)
-        fuser ! OffsetModel(deltaT, GPSdeltaStats.stddev)
+
+        gpsDeltaStats(deltaT)
+
+        fuser ! OffsetModel(deltaT, gpsDeltaStats.stddev)
+      }
+      case LocationManager.NETWORK_PROVIDER => {
+        // FIXME - more here?
       }
       case _ => {
         Log.w(Config.LogName, s"Unused location update from ${loc.getProvider}")
       }
     }
+
+    updateLocation(GeoPos(loc), Seq(ntpRef))
   }
 }

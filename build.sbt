@@ -1,10 +1,12 @@
 name := "santp"
 
 import android.Keys._
-android.Plugin.androidBuild
+
+enablePlugins(AndroidApp)
 
 scalaVersion := "2.11.8"
 scalacOptions ++= Seq("-deprecation", "-feature")
+javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
 
 
 proguardOptions in Android ++= Seq(
@@ -24,24 +26,26 @@ proguardOptions in Android ++= Seq(
     "-keep class akka.actor.LocalActorRefProvider$SystemGuardian { *; }",
     "-keep class akka.actor.RepointableActorRef { *; }",
     "-keep class akka.dispatch.UnboundedMailbox { *; }",
+    "-keep class scala.collection.Seq",
     "-keep class scala.collection.mutable.WrappedArray",
     "-keep class scala.concurrent.duration.*",
     "-keep class scala.math.Ordering$Double$",
     "-keep class scala.Option",
     "-keep class scala.PartialFunction",
     "-keep class uk.rwpenney.santp.*",
+    "-keep class uk.rwpenney.santp.GeoLocator { *; }",
     "-keep class uk.rwpenney.santp.NTPtimeRef { *; }",
-    "-keep class uk.rwpenney.santp.UIupdater { *; }",
     "-keep class uk.rwpenney.santp.TimeRefFuser { *; }",
+    "-keep class uk.rwpenney.santp.UIupdater { *; }",
     "-libraryjars /usr/lib/jvm/default-java/jre/lib/rt.jar",
     "-printseeds target/seeds.txt", "-printusage target/usage.txt"
 )
 
 
 libraryDependencies ++= Seq(
-    "com.typesafe.akka" %% "akka-actor" % "2.3.15",
+    "com.typesafe.akka" %% "akka-actor" % "2.3.16",
     "commons-net" % "commons-net" % "3.5",
-    "net.sf.proguard" % "proguard-base" % "5.2"
+    "net.sf.proguard" % "proguard-base" % "5.3"
 )
 
 
