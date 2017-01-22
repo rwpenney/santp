@@ -15,7 +15,7 @@ import android.util.Log
 case class GeoPos(latitude: Double=0, longitude: Double=0) {
   val EarthRadius = 6371.0
 
-  def separation(other: GeoPos) = {
+  def separation(other: GeoPos): Double = {
     val v0 = toUnitVec
     val v1 = other.toUnitVec
 
@@ -29,13 +29,13 @@ case class GeoPos(latitude: Double=0, longitude: Double=0) {
   }
 
   /// Convert to a 3D Cartesian unit-vector
-  def toUnitVec() = {
+  def toUnitVec(): Seq[Double] = {
     val theta = Math.toRadians(90 - latitude)
     val phi = Math.toRadians(longitude)
     val cosTheta = Math.cos(theta)
     val sinTheta = Math.sin(theta)
 
-    List(sinTheta * Math.cos(phi), sinTheta * Math.sin(phi), cosTheta)
+    Seq(sinTheta * Math.cos(phi), sinTheta * Math.sin(phi), cosTheta)
   }
 }
 
@@ -62,7 +62,7 @@ trait GeoLocator extends LocationListener {
   val gpsDeltaStats = new ExpoAverager(0, 200, 0.2)
   val errorGrowthRate = 0.01
   var lastKnownLocation = GeoPos(90, -180)
-  var lastAdvertisedLocation = GeoPos(-90, 270)
+  private var lastAdvertisedLocation = GeoPos(-90, 270)
 
   def initLocUpdates(lmopt: Option[LocationManager], origin: GeoPos) {
     lmopt match {
@@ -124,10 +124,10 @@ trait GeoLocator extends LocationListener {
 
     // Crudely estimate distance moved since last message:
     val GeoPos(oldlat, oldlng) = lastAdvertisedLocation
-    val angshift = (newpos.longitude - oldlng + 3 * 360) % 360.0
-                    + (newpos.latitude - oldlat + 3 * 180) % 180.0
+    val angshift = Math.abs((newpos.longitude - oldlng + 540) % 360.0 - 180)
+                    + Math.abs(newpos.latitude - oldlat + 3 * 180) % 180.0
 
-    if (angshift > 0.3) {
+    if (angshift > 0.03) {
       Log.d(Config.LogName, s"Advertising location change (${angshift})")
 
       clients.foreach { client =>

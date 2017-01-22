@@ -152,7 +152,7 @@ class SantpActivity extends android.app.Activity with GeoLocator {
                               android.content.Context.LOCATION_SERVICE) .
                           asInstanceOf[LocationManager])
     initLocUpdates(locMgr, defaultPos)
-    updateLocation(lastKnownLocation, Seq(ntpRef, fuser, uiUpdater))
+    updateLocation(lastKnownLocation, Seq(ntpRef, uiUpdater))
 
     timeRefs.foreach {
       tr => tr ! UpdateRequest
@@ -217,6 +217,6 @@ class SantpActivity extends android.app.Activity with GeoLocator {
       }
     }
 
-    updateLocation(GeoPos(loc), Seq(ntpRef))
+    updateLocation(GeoPos(loc), Seq(ntpRef, uiUpdater))
   }
 }

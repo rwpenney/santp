@@ -31,6 +31,7 @@ case class TimeRefFuser(consumer: ActorRef,
 
   def combine(m1: OffsetModel, m2: OffsetModel) = {
     val merged = m1 * m2
+
     if (merged.stddev_ms > MinError) {
       merged
     } else {
@@ -48,11 +49,14 @@ class ExpoAverager(var mean: Double, var stddev: Double,
                    val weight: Double) {
   private var variance = stddev * stddev
 
-  def apply(datum: Double) = {
+  def apply(datum: Double): ExpoAverager = {
     val delta = datum - mean
+
     variance += weight * (delta * delta)
     mean += weight * delta
+
     stddev = Math.sqrt(variance)
+
     this
   }
 }
