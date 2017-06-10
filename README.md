@@ -4,7 +4,7 @@
 
 santp is a simple
 [Android](https://developer.android.com/index.html) application
-for obtaining accurate wall-clock time
+for obtaining semi-accurate wall-clock time
 using the Network Time Protocol
 ([NTP](https://en.wikipedia.org/wiki/Network_Time_Protocol)).
 This allows a mobile phone to estimate the offset between
@@ -27,3 +27,12 @@ the [sbt-android](https://github.com/scala-android/sbt-android) plugin.
 It makes use of the
 [Apache Commons Net](https://commons.apache.org/proper/commons-net/) library,
 and the [Akka](http://akka.io/) toolkit.
+
+
+## Caveats
+
+The application is supplied as-is, with no warranty,
+and with no guarantee of any particular level of timing accuracy.
+
+The application is released under
+the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).

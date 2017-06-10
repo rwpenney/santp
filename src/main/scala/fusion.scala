@@ -1,3 +1,8 @@
+/*
+ *  Mechanisms for combining time-reference measurements
+ *  RW Penney, January 2016
+ */
+
 package uk.rwpenney.santp
 
 import akka.actor.{Actor, ActorRef}

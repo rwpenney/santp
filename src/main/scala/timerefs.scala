@@ -1,3 +1,8 @@
+/*
+ *  Sources of clock-offset information for Scala/Android NTP application
+ *  RW Penney, January 2016
+ */
+
 package uk.rwpenney.santp
 
 import akka.actor.{Actor, ActorRef}

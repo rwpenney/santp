@@ -2,6 +2,7 @@
  *  Clock-offset models and handshaking classes for Scala/Android NTP app
  *  RW Penney, January 2016
  */
+
 package uk.rwpenney.santp
 
 import akka.actor.{ActorRef, ActorSystem, Cancellable}
