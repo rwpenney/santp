@@ -1,3 +1,8 @@
+/*
+ *  NTP host-selection mechanisms for Scala/Android NTP app
+ *  RW Penney, January 2016
+ */
+
 package uk.rwpenney.santp
 
 import android.util.{JsonReader, Log}
