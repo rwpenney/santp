@@ -47,7 +47,3 @@ libraryDependencies ++= Seq(
     "commons-net" % "commons-net" % "3.5",
     "net.sf.proguard" % "proguard-base" % "5.3"
 )
-
-
-run <<= run in Android
-install <<= install in Android

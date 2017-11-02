@@ -1,6 +1,6 @@
+local.properties
 *.*.swp
 
-target/
-project/project
 bin/
-local.properties
+project/project
+target/
