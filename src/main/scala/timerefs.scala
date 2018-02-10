@@ -108,10 +108,12 @@ class NTPtimeRef(ntpmap: NtpZones, fuser: ActorRef)
   def initClient(): NTPUDPClient = {
     val client = new NTPUDPClient()
 
-    client.setDefaultTimeout(2000)
+    client.setVersion(4)
+    client.setDefaultTimeout(2500)
     client.open()
 
-    Log.d(Config.LogName, s"Initialized NTP socket ${client.getLocalPort()}")
+    Log.d(Config.LogName, s"Initialized NTP socket ${client.getLocalPort},"
+                            + s" protocol-${client.getVersion}")
 
     client
   }

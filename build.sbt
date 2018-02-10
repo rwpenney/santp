@@ -4,7 +4,7 @@ import android.Keys._
 
 enablePlugins(AndroidApp)
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.11.12"
 scalacOptions ++= Seq("-deprecation", "-feature")
 javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
 
@@ -43,7 +43,7 @@ proguardOptions in Android ++= Seq(
 
 
 libraryDependencies ++= Seq(
-    "com.typesafe.akka" %% "akka-actor" % "2.3.16",
-    "commons-net" % "commons-net" % "3.5",
+    "com.typesafe.akka" %% "akka-actor" % "2.3.16",   // Last to support Java 7
+    "commons-net" % "commons-net" % "3.6",
     "net.sf.proguard" % "proguard-base" % "5.3"
 )

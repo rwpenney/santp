@@ -109,7 +109,7 @@
     "latitude": 20.0,
     "longitude": 77.0,
     "ntphosts": [
-      "0.in.pool.ntp.org"
+      "3.in.pool.ntp.org"
     ],
     "radius": 1023.0
   },
@@ -244,7 +244,7 @@
     "latitude": 40.0,
     "longitude": -4.0,
     "ntphosts": [
-      "0.es.pool.ntp.org"
+      "3.es.pool.ntp.org"
     ],
     "radius": 401.0
   },
